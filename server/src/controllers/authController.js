@@ -24,8 +24,8 @@ function buildAuthResponse(user) {
 }
 
 function validateSignupInput(name, email, password) {
-    if (!name || !email || !password) {
-        return 'name, email and password are required';
+    if (!name || !email || !password || !phone || !country || !companyName) {
+        return 'name, email, password, phone, country and companyName are required';
     }
     if (!EMAIL_REGEX.test(email)) {
         return 'Please enter a valid email address';
