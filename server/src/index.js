@@ -1,9 +1,10 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const mongoose = require('mongoose');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { connectDatabase } from './database/database.js';
+import authRoutes from './routes/authRoutes.js';
+
 const app = express();
-const { connectDatabase } = require('./database/database');
 
 dotenv.config();
 const PORT = process.env.PORT || 5000;
@@ -13,13 +14,15 @@ const PORT = process.env.PORT || 5000;
 })();
 
 // Middleware
+app.use(cors());
 app.use(express.json());
+app.use('/api/auth', authRoutes);
 
-app.get('/check',(req,res) => {
-    res.send('Server is running on port 5000');
-    console.log('Server is running on port 5000');
+app.get('/status',(req,res) => {
+    res.send(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${process.env.PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
