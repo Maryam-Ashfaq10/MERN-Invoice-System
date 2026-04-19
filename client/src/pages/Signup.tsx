@@ -37,6 +37,8 @@ const Signup = () => {
     const [errors, setErrors] = useState<SignupErrors>({})
     const [submitting, setSubmitting] = useState(false)
     const [successMessage, setSuccessMessage] = useState('')
+    const [apiError, setApiError] = useState('')
+
 
     const handleChange =
         (field: keyof SignupForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,8 +69,8 @@ const Signup = () => {
 
         if (!form.password) {
             nextErrors.password = 'Password is required.'
-        } else if (form.password.length < 8) {
-            nextErrors.password = 'Password must be at least 8 characters.'
+        } else if (form.password.length < 6) {
+            nextErrors.password = 'Password must be at least 6 characters.'
         }
 
         if (!form.confirmPassword) {
@@ -85,15 +87,36 @@ const Signup = () => {
 
         const validationErrors = validate()
         setErrors(validationErrors)
-
         if (Object.keys(validationErrors).length > 0) return
 
         try {
             setSubmitting(true)
+            setApiError('')
 
             // Replace with your real API call
-            // await fetch(`${import.meta.env.VITE_API_URL}/api/auth/signup`, {...})
-            await new Promise((resolve) => setTimeout(resolve, 900))
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/signup`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: form.fullName.trim(),
+                    email: form.email.trim(),
+                    password: form.password,
+                    phone: form.phone.trim(),
+                    country: form.country.trim(),
+                    companyName: form.companyName.trim(),
+                  }),
+            })
+            if (!response.ok) {
+                throw new Error('Failed to create account')
+            }
+            const data = await response.json()
+            console.log(data)
+
+            if (data.token) {
+                localStorage.setItem('token', data.token)
+              }
 
             setSuccessMessage('Account created successfully.')
             setForm(initialForm)
