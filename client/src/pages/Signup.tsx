@@ -143,7 +143,7 @@ const Signup = () => {
                     </Alert>
                 )}
 
-                <Box component="form" noValidate>
+                <Box component="form" noValidate onSubmit={handleSubmit}>
                     <Stack spacing={2}>
                         <TextField
                             label="Full Name"
