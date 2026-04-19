@@ -29,7 +29,20 @@ const userSchema = new mongoose.Schema(
         companyName: {
             type: String,
             required: true,
-        },  
+        },
+        failedLoginAttempts: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        lastFailedLoginAt: {
+            type: Date,
+            default: null,
+        },
+        lockoutUntil: {
+            type: Date,
+            default: null,
+        },
     },
     {
         timestamps: true,

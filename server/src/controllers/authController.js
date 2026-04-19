@@ -5,6 +5,11 @@ import User from '../models/User.js';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 6;
 
+/** Failures farther apart than this start a new streak (not counted toward lockout). */
+const STREAK_GAP_MS = 15 * 60 * 1000;
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000;
+
 function buildAuthResponse(user) {
     const token = jwt.sign(
         { userId: user._id.toString(), email: user.email },
@@ -23,7 +28,7 @@ function buildAuthResponse(user) {
     };
 }
 
-function validateSignupInput(name, email, password) {
+function validateSignupInput(name, email, password, phone, country, companyName) {
     if (!name || !email || !password || !phone || !country || !companyName) {
         return 'name, email, password, phone, country and companyName are required';
     }
@@ -55,8 +60,15 @@ export async function signup(req, res) {
             });
         }
 
-        const { name, email, password } = req.body;
-        const validationError = validateSignupInput(name, email, password);
+        const { name, email, password, phone, country, companyName } = req.body;
+        const validationError = validateSignupInput(
+            name,
+            email,
+            password,
+            phone,
+            country,
+            companyName
+        );
         if (validationError) {
             return res.status(400).json({ success: false, message: validationError });
         }
@@ -75,10 +87,14 @@ export async function signup(req, res) {
             name: name.trim(),
             email: normalizedEmail,
             password: hashedPassword,
+            phone: phone.trim(),
+            country: country.trim(),
+            companyName: companyName.trim(),
         });
 
         return res.status(201).json(buildAuthResponse(user));
     } catch (error) {
+        console.log(error);
         return res.status(500).json({
             success: false,
             message: 'Failed to create account',
@@ -111,13 +127,65 @@ export async function login(req, res) {
             });
         }
 
+        const now = Date.now();
+        if (user.lockoutUntil && user.lockoutUntil.getTime() > now) {
+            const retryAfterSec = Math.ceil((user.lockoutUntil.getTime() - now) / 1000);
+            return res.status(429).json({
+                success: false,
+                message:
+                    'Too many failed login attempts. Try again in a few minutes.',
+                retryAfterSeconds: retryAfterSec,
+            });
+        }
+
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
+            const lastFail = user.lastFailedLoginAt
+                ? user.lastFailedLoginAt.getTime()
+                : null;
+            const streakExpired =
+                lastFail == null || now - lastFail > STREAK_GAP_MS;
+            const previousAttempts = user.failedLoginAttempts ?? 0;
+            const newAttempts = streakExpired ? 1 : previousAttempts + 1;
+            const locked = newAttempts >= MAX_FAILED_ATTEMPTS;
+            const lockoutUntil = locked ? new Date(now + LOCKOUT_MS) : null;
+
+            await User.findOneAndUpdate(
+                { _id: user._id },
+                {
+                    $set: {
+                        failedLoginAttempts: newAttempts,
+                        lastFailedLoginAt: new Date(now),
+                        lockoutUntil,
+                    },
+                }
+            );
+
+            if (locked) {
+                return res.status(429).json({
+                    success: false,
+                    message:
+                        'Too many failed login attempts. Account locked for 15 minutes.',
+                    retryAfterSeconds: Math.ceil(LOCKOUT_MS / 1000),
+                });
+            }
+
             return res.status(401).json({
                 success: false,
                 message: 'Invalid email or password',
             });
         }
+
+        await User.findOneAndUpdate(
+            { _id: user._id },
+            {
+                $set: {
+                    failedLoginAttempts: 0,
+                    lastFailedLoginAt: null,
+                    lockoutUntil: null,
+                },
+            }
+        );
 
         return res.status(200).json(buildAuthResponse(user));
     } catch (error) {
