@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+
 import {
   Alert,
   Box,
@@ -28,6 +30,8 @@ const Login = () => {
   const [submitting, setSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [apiError, setApiError] = useState('')
+
+  const navigate = useNavigate()
 
   const handleChange =
     (field: keyof LoginForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,12 +71,31 @@ const Login = () => {
       setSubmitting(true)
       setApiError('')
 
-      // Replace this mock with your real API call
-      // const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, { ... })
-      await new Promise((resolve) => setTimeout(resolve, 900))
+      
+       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+        }),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to login')
+      }
+      const data = await response.json()
+      console.log(data)
+      if (data?.token) {
+        localStorage.setItem('token', data.token)
+      }
 
       setSuccessMessage('Login successful.')
       setForm(initialForm)
+
+      navigate('/dashboard')
+      
     } catch {
       setSuccessMessage('')
       setApiError('Invalid credentials. Please try again.')

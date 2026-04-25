@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
     Alert,
     Box,
@@ -38,6 +39,8 @@ const Signup = () => {
     const [submitting, setSubmitting] = useState(false)
     const [successMessage, setSuccessMessage] = useState('')
     const [apiError, setApiError] = useState('')
+
+    const navigate = useNavigate()
 
 
     const handleChange =
@@ -106,20 +109,23 @@ const Signup = () => {
                     phone: form.phone.trim(),
                     country: form.country.trim(),
                     companyName: form.companyName.trim(),
-                  }),
+                }),
             })
             if (!response.ok) {
                 throw new Error('Failed to create account')
             }
             const data = await response.json()
-            console.log(data)
-
-            if (data.token) {
-                localStorage.setItem('token', data.token)
-              }
 
             setSuccessMessage('Account created successfully.')
             setForm(initialForm)
+
+            setSuccessMessage('Account created successfully.')
+            
+            setForm(initialForm)
+            // redirect after short delay so user sees success message
+            setTimeout(() => {
+                navigate('/login')
+            }, 800)
         } catch {
             setSuccessMessage('')
         } finally {
