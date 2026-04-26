@@ -4,6 +4,7 @@ import Signup from './pages/Signup'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import ProtectedRoute from './components/ProtectedRoute'
+import AppLayout from './layouts/AppLayout'
 
 function App() {
 
@@ -18,7 +19,10 @@ function App() {
 
           {/* protected routes */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route element={<AppLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+
+            </Route>
           </Route>
 
         </Routes>
