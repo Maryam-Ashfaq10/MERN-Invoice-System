@@ -105,3 +105,34 @@ export const getInvoicesByUserId = async (req, res) => {
         });
     }
 };
+
+export const getInvoiceByNumber = async (req, res) => {
+    try {
+      const { invoiceNumber } = req.params;
+      const includeDeleted = String(req.query.includeDeleted || 'false') === 'true';
+  
+      if (!invoiceNumber) {
+        return res.status(400).json({ message: 'invoiceNumber is required' });
+      }
+  
+      const filter = includeDeleted
+        ? { invoiceNumber }
+        : { invoiceNumber, isDeleted: false };
+  
+      const invoice = await Invoice.findOne(filter);
+  
+      if (!invoice) {
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+  
+      return res.status(200).json({
+        message: 'Invoice fetched successfully',
+        data: invoice
+      });
+    } catch (error) {
+      return res.status(500).json({
+        message: 'Failed to fetch invoice',
+        error: error.message
+      });
+    }
+  };
