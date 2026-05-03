@@ -9,4 +9,6 @@ router.get('/get-all/:userId', invoiceController.getInvoicesByUserId);
 
 router.get('/number/:invoiceNumber', invoiceController.getInvoiceByNumber);
 
+router.delete('/soft-delete/:invoiceNumber', invoiceController.softDeleteInvoice);
+
 export default router;
