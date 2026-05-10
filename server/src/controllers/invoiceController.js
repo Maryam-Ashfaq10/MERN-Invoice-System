@@ -176,3 +176,10 @@ export const softDeleteInvoice = async (req, res) => {
         });
     }
 };
+
+export default {
+    createInvoice,
+    getInvoicesByUserId,
+    getInvoiceByNumber,
+    softDeleteInvoice
+};
