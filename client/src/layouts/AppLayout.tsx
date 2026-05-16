@@ -22,8 +22,6 @@ import { useTheme } from '@mui/material/styles'
 import MenuIcon from '@mui/icons-material/Menu'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
-import PeopleIcon from '@mui/icons-material/People'
-import Inventory2Icon from '@mui/icons-material/Inventory2'
 import PaymentsIcon from '@mui/icons-material/Payments'
 import AssessmentIcon from '@mui/icons-material/Assessment'
 import NotificationsIcon from '@mui/icons-material/Notifications'
@@ -33,9 +31,7 @@ const drawerWidth = 260
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
-  { label: 'Invoices', path: '/invoices', icon: <ReceiptLongIcon /> },
-  { label: 'Customers', path: '/customers', icon: <PeopleIcon /> },
-  { label: 'Products', path: '/products', icon: <Inventory2Icon /> },
+  { label: 'Create Invoices', path: '/invoice/new', icon: <ReceiptLongIcon /> },
   { label: 'Payments', path: '/payments', icon: <PaymentsIcon /> },
   { label: 'Reports', path: '/reports', icon: <AssessmentIcon /> },
 ]

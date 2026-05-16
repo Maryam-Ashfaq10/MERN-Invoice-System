@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './layouts/AppLayout'
+import CreateInvoice from './pages/CreateInvoice'
 
 function App() {
 
@@ -21,7 +22,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
-
+              <Route path="/invoice/new" element={<CreateInvoice />} />
             </Route>
           </Route>
 
