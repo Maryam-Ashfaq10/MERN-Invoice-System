@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './layouts/AppLayout'
 import CreateInvoice from './pages/CreateInvoice'
+import ViewInvoices from './pages/ViewInvoices'
 
 function App() {
 
@@ -23,6 +24,7 @@ function App() {
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/invoice/new" element={<CreateInvoice />} />
+              <Route path="/invoices/all" element={<ViewInvoices />} />
             </Route>
           </Route>
 

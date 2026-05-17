@@ -32,6 +32,7 @@ const drawerWidth = 260
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
   { label: 'Create Invoices', path: '/invoice/new', icon: <ReceiptLongIcon /> },
+  { label: 'View Invoices', path: '/invoices/all', icon: <ReceiptLongIcon /> },
   { label: 'Payments', path: '/payments', icon: <PaymentsIcon /> },
   { label: 'Reports', path: '/reports', icon: <AssessmentIcon /> },
 ]
