@@ -6,6 +6,7 @@ import {
     Button,
     Chip,
     CircularProgress,
+    MenuItem,
     Paper,
     Stack,
     Table,
@@ -14,6 +15,7 @@ import {
     TableContainer,
     TableHead,
     TableRow,
+    TextField,
     Typography,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
@@ -25,6 +27,7 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogContentText from '@mui/material/DialogContentText'
 import DialogActions from '@mui/material/DialogActions'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import { EditOutlined } from '@mui/icons-material'
 import { getAuthHeaders, getUserIdFromToken } from '../lib/auth'
 
 type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue'
@@ -34,6 +37,7 @@ type Invoice = {
     invoiceNumber: string
     customerName: string
     customerEmail: string
+    customerPhone: string
     currency: string
     status: InvoiceStatus
     dueDate: string
@@ -76,6 +80,14 @@ function statusColor(
     }
 }
 
+type EditForm = {
+    customerName: string
+    customerEmail: string
+    customerPhone: string
+    status: InvoiceStatus
+    dueDate: string
+}
+
 const Invoices = () => {
     const navigate = useNavigate()
     const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -84,6 +96,11 @@ const Invoices = () => {
     const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null)
     const [deleting, setDeleting] = useState(false)
     const [deleteError, setDeleteError] = useState('')
+
+    const [invoiceToEdit, setInvoiceToEdit] = useState<Invoice | null>(null)
+    const [editForm, setEditForm] = useState<EditForm | null>(null)
+    const [saving, setSaving] = useState(false)
+    const [editError, setEditError] = useState('')
 
     const loadInvoices = useCallback(async () => {
         const token = localStorage.getItem('token')
@@ -165,6 +182,84 @@ const Invoices = () => {
             )
         } finally {
             setDeleting(false)
+        }
+    }
+
+    const closeEditModal = () => {
+        setInvoiceToEdit(null)
+        setEditForm(null)
+        setEditError('')
+    }
+
+    const openEditModal = (inv: Invoice) => {
+        setEditError('')
+        setInvoiceToEdit(inv)
+        setEditForm({
+            customerName: inv.customerName,
+            customerEmail: inv.customerEmail,
+            customerPhone: inv.customerPhone ?? '',
+            status: inv.status,
+            dueDate: inv.dueDate.slice(0, 10),
+        })
+    }
+
+    const handleEditFieldChange =
+        (field: keyof EditForm) =>
+            (e: React.ChangeEvent<HTMLInputElement>) => {
+                if (!editForm) return
+                setEditForm((prev) =>
+                    prev ? { ...prev, [field]: e.target.value } : prev
+                )
+                setEditError('')
+            }
+
+    const handleEditSave = async () => {
+        if (!invoiceToEdit || !editForm) return
+
+        const userId = getUserIdFromToken()
+        if (!userId) {
+            setEditError('You must be logged in to update an invoice.')
+            return
+        }
+
+        // Optional: reuse validation from CreateInvoice (name, email, due date)
+        try {
+            setSaving(true)
+            setEditError('')
+
+            const encoded = encodeURIComponent(invoiceToEdit.invoiceNumber)
+            const response = await fetch(
+                `${import.meta.env.VITE_API_URL}/api/invoice/update/${encoded}`,
+                {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        userId,
+                        customerName: editForm.customerName.trim(),
+                        customerEmail: editForm.customerEmail.trim(),
+                        customerPhone: editForm.customerPhone.trim(),
+                        status: editForm.status,
+                        dueDate: editForm.dueDate,
+                    }),
+                }
+            )
+
+            const data = await response.json()
+            if (!response.ok) {
+                throw new Error(data.message ?? 'Failed to update invoice')
+            }
+
+            // Update row in place — same pattern as delete filtering
+            setInvoices((prev) =>
+                prev.map((inv) =>
+                    inv._id === invoiceToEdit._id ? { ...inv, ...data.data } : inv
+                )
+            )
+            closeEditModal()
+        } catch (err) {
+            setEditError(err instanceof Error ? err.message : 'Could not update invoice.')
+        } finally {
+            setSaving(false)
         }
     }
 
@@ -281,6 +376,18 @@ const Invoices = () => {
                                                     </IconButton>
                                                 </span>
                                             </Tooltip>
+                                            <Tooltip title="Edit invoice">
+                                                <span>
+                                                    <IconButton
+                                                        color="primary"
+                                                        size="small"
+                                                        aria-label={`Edit ${inv.invoiceNumber}`}
+                                                        onClick={() => openEditModal(inv)}
+                                                    >
+                                                        <EditOutlined fontSize="small" />
+                                                    </IconButton>
+                                                </span>
+                                            </Tooltip>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -318,6 +425,97 @@ const Invoices = () => {
                         disabled={deleting}
                     >
                         {deleting ? 'Deleting…' : 'Delete'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog
+                open={Boolean(invoiceToEdit && editForm)}
+                onClose={() => !saving && closeEditModal()}
+                fullWidth
+                maxWidth="sm"
+            >
+                <DialogTitle>
+                    Edit invoice {invoiceToEdit?.invoiceNumber}
+                </DialogTitle>
+                <DialogContent>
+                    <Stack spacing={2} sx={{ mt: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                            Amount:{' '}
+                            {invoiceToEdit &&
+                                formatAmount(
+                                    invoiceToEdit.totalAmount,
+                                    invoiceToEdit.currency
+                                )}
+                        </Typography>
+
+                        <TextField
+                            label="Customer name"
+                            value={editForm?.customerName ?? ''}
+                            onChange={handleEditFieldChange('customerName')}
+                            fullWidth
+                            required
+                            disabled={saving}
+                        />
+                        <TextField
+                            label="Customer email"
+                            type="email"
+                            value={editForm?.customerEmail ?? ''}
+                            onChange={handleEditFieldChange('customerEmail')}
+                            fullWidth
+                            required
+                            disabled={saving}
+                        />
+                        <TextField
+                            label="Customer phone"
+                            value={editForm?.customerPhone ?? ''}
+                            onChange={handleEditFieldChange('customerPhone')}
+                            fullWidth
+                            required
+                            disabled={saving}
+                        />
+                        <TextField
+                            select
+                            label="Status"
+                            value={editForm?.status ?? 'draft'}
+                            onChange={handleEditFieldChange('status')}
+                            fullWidth
+                            required
+                            disabled={saving}
+                        >
+                            <MenuItem value="draft">Draft</MenuItem>
+                            <MenuItem value="sent">Sent</MenuItem>
+                            <MenuItem value="paid">Paid</MenuItem>
+                            <MenuItem value="overdue">Overdue</MenuItem>
+                        </TextField>
+                        <TextField
+                            label="Due date"
+                            type="date"
+                            value={editForm?.dueDate ?? ''}
+                            onChange={handleEditFieldChange('dueDate')}
+                            fullWidth
+                            required
+                            disabled={saving}
+                            InputLabelProps={{ shrink: true }}
+                        />
+                    </Stack>
+
+                    {editError && (
+                        <Alert severity="error" sx={{ mt: 2 }}>
+                            {editError}
+                        </Alert>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={closeEditModal} disabled={saving}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleEditSave}
+                        disabled={saving}
+                    >
+                        {saving ? 'Saving…' : 'Save changes'}
                     </Button>
                 </DialogActions>
             </Dialog>
