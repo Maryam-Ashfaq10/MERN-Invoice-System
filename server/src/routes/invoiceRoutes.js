@@ -12,4 +12,5 @@ router.get('/number/:invoiceNumber', requireAuth, invoiceController.getInvoiceBy
 
 router.delete('/soft-delete/:invoiceNumber', requireAuth, invoiceController.softDeleteInvoice);
 
+router.put('/update/:invoiceNumber', requireAuth, invoiceController.updateInvoice);
 export default router;
