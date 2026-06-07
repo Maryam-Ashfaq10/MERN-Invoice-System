@@ -78,6 +78,46 @@ export const createInvoice = async (req, res) => {
     }
 };
 
+export const getInvoiceStatsByUserId = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId) {
+            return res.status(400).json({ message: 'userId is required' });
+        }
+
+        const statusCounts = await Invoice.aggregate([
+            { $match: { createdBy: userId, isDeleted: false } },
+            { $group: { _id: '$status', count: { $sum: 1 } } },
+        ]);
+
+        const counts = { draft: 0, sent: 0, paid: 0, overdue: 0 };
+        let total = 0;
+
+        for (const item of statusCounts) {
+            if (item._id in counts) {
+                counts[item._id] = item.count;
+            }
+            total += item.count;
+        }
+
+        return res.status(200).json({
+            message: 'Invoice stats fetched successfully',
+            data: {
+                total,
+                draft: counts.draft,
+                sent: counts.sent,
+                paid: counts.paid,
+            },
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Failed to fetch invoice stats',
+            error: error.message,
+        });
+    }
+};
+
 export const getInvoicesByUserId = async (req, res) => {
     try {
         const { userId } = req.params;
@@ -239,6 +279,7 @@ export const updateInvoice = async (req, res) => {
 
 export default {
     createInvoice,
+    getInvoiceStatsByUserId,
     getInvoicesByUserId,
     getInvoiceByNumber,
     softDeleteInvoice,

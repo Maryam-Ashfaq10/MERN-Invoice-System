@@ -1,23 +1,77 @@
-// client/src/pages/Dashboard.tsx
+import { useCallback, useEffect, useState } from 'react'
 import {
+  Alert,
   Box,
   Button,
   Card,
   CardContent,
+  CircularProgress,
   Grid,
   Paper,
   Stack,
   Typography,
 } from '@mui/material'
+import { getAuthHeaders, getUserIdFromToken } from '../lib/auth'
 
-const cards = [
-  { label: 'Total Revenue', value: '$24,600' },
-  { label: 'Outstanding', value: '$6,240' },
-  { label: 'Paid This Month', value: '$9,180' },
-  { label: 'Overdue Invoices', value: '8' },
+type InvoiceStats = {
+  total: number
+  draft: number
+  sent: number
+  paid: number
+}
+
+const statCards: { key: keyof InvoiceStats; label: string }[] = [
+  { key: 'total', label: 'Total Invoices' },
+  { key: 'draft', label: 'Draft Invoices' },
+  { key: 'sent', label: 'Sent Invoices' },
+  { key: 'paid', label: 'Paid Invoices' },
 ]
 
 const Dashboard = () => {
+  const [stats, setStats] = useState<InvoiceStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const loadStats = useCallback(async () => {
+    const token = localStorage.getItem('token')
+    const userId = getUserIdFromToken()
+
+    if (!token || !userId) {
+      setError('You must be logged in to view dashboard stats.')
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError('')
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/invoice/stats/${userId}`,
+        { headers: getAuthHeaders() }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message ?? 'Failed to load dashboard stats')
+      }
+
+      setStats(data.data ?? null)
+    } catch (err) {
+      setStats(null)
+      setError(
+        err instanceof Error ? err.message : 'Something went wrong. Try again.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadStats()
+  }, [loadStats])
+
   return (
     <Stack spacing={3}>
       <Box>
@@ -29,17 +83,23 @@ const Dashboard = () => {
         </Typography>
       </Box>
 
+      {error && <Alert severity="error">{error}</Alert>}
+
       <Grid container spacing={2}>
-        {cards.map((card) => (
-          <Grid key={card.label} size={{ xs: 12, sm: 6, lg: 3 }}>
+        {statCards.map((card) => (
+          <Grid key={card.key} size={{ xs: 12, sm: 6, lg: 3 }}>
             <Card>
               <CardContent>
                 <Typography color="text.secondary" variant="body2">
                   {card.label}
                 </Typography>
-                <Typography variant="h5" fontWeight={700}>
-                  {card.value}
-                </Typography>
+                {loading ? (
+                  <CircularProgress size={28} sx={{ mt: 1 }} />
+                ) : (
+                  <Typography variant="h5" fontWeight={700}>
+                    {stats?.[card.key] ?? 0}
+                  </Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>
